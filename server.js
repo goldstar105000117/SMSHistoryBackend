@@ -59,7 +59,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sms', smsRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
     console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
         success: false,
