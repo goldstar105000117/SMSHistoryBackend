@@ -1,11 +1,38 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const createTables = async () => {
+const createDatabaseAndTables = async () => {
   let connection;
 
   try {
-    // Connect directly to the existing database
+    // First, connect without specifying a database to check if it exists
+    console.log('🔗 Connecting to MySQL server...');
+    connection = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    });
+
+    console.log('✅ Connected to MySQL server');
+
+    // Check if database exists and create if it doesn't
+    console.log(`🔍 Checking if database '${process.env.DB_NAME}' exists...`);
+    const [databases] = await connection.execute(
+      'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?',
+      [process.env.DB_NAME]
+    );
+
+    if (databases.length === 0) {
+      console.log(`📦 Database '${process.env.DB_NAME}' does not exist. Creating...`);
+      await connection.execute(`CREATE DATABASE ${process.env.DB_NAME}`);
+      console.log(`✅ Database '${process.env.DB_NAME}' created successfully`);
+    } else {
+      console.log(`✅ Database '${process.env.DB_NAME}' already exists`);
+    }
+
+    // Now connect to the specific database
+    await connection.end();
     connection = await mysql.createConnection({
       host: process.env.DB_HOST,
       port: process.env.DB_PORT,
@@ -81,11 +108,16 @@ const createTables = async () => {
     // Provide more helpful error messages
     if (error.code === 'ECONNREFUSED') {
       console.error('💡 Make sure MySQL server is running and accessible');
+      console.error(`💡 Check if MySQL is running on ${process.env.DB_HOST}:${process.env.DB_PORT}`);
     } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
       console.error('💡 Check your database credentials in the .env file');
+      console.error(`💡 User: ${process.env.DB_USER}`);
+      console.error(`💡 Host: ${process.env.DB_HOST}`);
     } else if (error.code === 'ER_BAD_DB_ERROR') {
-      console.error(`💡 Database '${process.env.DB_NAME}' does not exist. Please create it first.`);
-      console.error(`   Run: CREATE DATABASE ${process.env.DB_NAME};`);
+      console.error(`💡 Database '${process.env.DB_NAME}' access error`);
+    } else if (error.code === 'ER_DBACCESS_DENIED_ERROR') {
+      console.error(`💡 Access denied for database '${process.env.DB_NAME}'`);
+      console.error(`💡 Make sure user '${process.env.DB_USER}' has proper permissions`);
     }
     
     process.exit(1);
@@ -98,5 +130,5 @@ const createTables = async () => {
 };
 
 // Run migration
-console.log('🚀 Starting database table creation...');
-createTables();
+console.log('🚀 Starting database and table creation...');
+createDatabaseAndTables();
