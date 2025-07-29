@@ -13,7 +13,12 @@ const router = express.Router();
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const { page = 1, limit = 100, address, search } = req.query;
-        const offset = (page - 1) * limit;
+
+        // Properly validate and convert parameters
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.max(1, Math.min(1000, parseInt(limit) || 100)); // Cap at 1000
+        const offset = (pageNum - 1) * limitNum;
+
         const userId = req.user.id;
 
         let query = `
@@ -35,9 +40,9 @@ router.get('/', authenticateToken, async (req, res) => {
             queryParams.push(`%${search}%`, `%${search}%`);
         }
 
-        // Add ordering and pagination
+        // Add ordering and pagination with properly validated numbers
         query += ' ORDER BY date DESC LIMIT ? OFFSET ?';
-        queryParams.push(parseInt(limit), parseInt(offset));
+        queryParams.push(limitNum, offset);
 
         const [messages] = await pool.execute(query, queryParams);
 
@@ -69,10 +74,10 @@ router.get('/', authenticateToken, async (req, res) => {
                     type: msg.type
                 })),
                 pagination: {
-                    current_page: parseInt(page),
-                    per_page: parseInt(limit),
+                    current_page: pageNum,
+                    per_page: limitNum,
                     total: total,
-                    total_pages: Math.ceil(total / limit)
+                    total_pages: Math.ceil(total / limitNum)
                 }
             }
         });
