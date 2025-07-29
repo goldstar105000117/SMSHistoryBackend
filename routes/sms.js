@@ -129,6 +129,7 @@ router.post('/bulk', authenticateToken, bulkSmsValidation, handleValidationError
         await connection.beginTransaction();
 
         const { messages } = req.body;
+        console.log(messages)
         const userId = req.user.id;
 
         let savedCount = 0;
