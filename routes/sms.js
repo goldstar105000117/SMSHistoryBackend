@@ -16,16 +16,16 @@ router.get('/', authenticateToken, async (req, res) => {
 
         // Properly validate and convert parameters
         const pageNum = Math.max(1, parseInt(page) || 1);
-        const limitNum = Math.max(1, Math.min(1000, parseInt(limit) || 100)); // Cap at 1000
+        const limitNum = Math.max(1, Math.min(1000, parseInt(limit) || 100));
         const offset = (pageNum - 1) * limitNum;
 
         const userId = req.user.id;
 
         let query = `
-      SELECT sms_id, address, body, date, type, created_at, updated_at
-      FROM sms_messages 
-      WHERE user_id = ?
-    `;
+            SELECT sms_id, address, body, date, type, created_at, updated_at
+            FROM sms_messages 
+            WHERE user_id = ?
+        `;
         let queryParams = [userId];
 
         // Add address filter if provided
@@ -40,11 +40,29 @@ router.get('/', authenticateToken, async (req, res) => {
             queryParams.push(`%${search}%`, `%${search}%`);
         }
 
-        // Add ordering and pagination with properly validated numbers
+        // Add ordering and pagination
         query += ' ORDER BY date DESC LIMIT ? OFFSET ?';
         queryParams.push(limitNum, offset);
 
-        const [messages] = await pool.execute(query, queryParams);
+        // DEBUG: Log all parameters and their types
+        console.log('=== DEBUG INFO ===');
+        console.log('userId:', userId, 'type:', typeof userId);
+        console.log('limitNum:', limitNum, 'type:', typeof limitNum);
+        console.log('offset:', offset, 'type:', typeof offset);
+        console.log('queryParams:', queryParams);
+        console.log('queryParams types:', queryParams.map(p => typeof p));
+        console.log('query:', query);
+        console.log('=== END DEBUG ===');
+
+        // Try alternative approach: Use string interpolation for LIMIT/OFFSET
+        // This is generally not recommended but can help identify the issue
+        const safeQuery = query.replace('LIMIT ? OFFSET ?', `LIMIT ${limitNum} OFFSET ${offset}`);
+        const safeParams = queryParams.slice(0, -2); // Remove last 2 params (limit, offset)
+
+        console.log('Safe query:', safeQuery);
+        console.log('Safe params:', safeParams);
+
+        const [messages] = await pool.execute(safeQuery, safeParams);
 
         // Get total count for pagination
         let countQuery = 'SELECT COUNT(*) as total FROM sms_messages WHERE user_id = ?';
