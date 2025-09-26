@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS sms_messages (
     date BIGINT NOT NULL,
     type INT NOT NULL,
     contact_name VARCHAR(255) NULL,
-    message_id VARCHAR(255) NULL,
     date_formatted VARCHAR(50) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL,
