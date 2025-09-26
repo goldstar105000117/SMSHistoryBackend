@@ -52,7 +52,7 @@ router.post('/message', authenticateToken, singleSMSValidation, handleValidation
 
         // Check if message exists for this user
         const [existingMessages] = await pool.execute(
-            'SELECT message_id FROM sms_messages WHERE date = ? AND user_id = ? AND address = ? AND body = ?',
+            'SELECT * FROM sms_messages WHERE date = ? AND user_id = ? AND address = ? AND body = ?',
             [date, userId, address, body]
         );
 
@@ -71,10 +71,9 @@ router.post('/message', authenticateToken, singleSMSValidation, handleValidation
         } else {
             // Insert new message with provided ID
             await pool.execute(`
-                INSERT INTO sms_messages (message_id, user_id, address, body, date, type, contact_name, date_formatted)
+                INSERT INTO sms_messages (user_id, address, body, date, type, contact_name, date_formatted)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `, [
-                id,
                 userId,
                 address,
                 body,
@@ -86,8 +85,8 @@ router.post('/message', authenticateToken, singleSMSValidation, handleValidation
 
             // Get inserted message
             const [messages] = await pool.execute(
-                'SELECT * FROM sms_messages WHERE message_id = ? AND user_id = ?',
-                [id, userId]
+                'SELECT * FROM sms_messages WHERE date = ? AND user_id = ? AND address = ? AND body = ?',
+                [date, userId, address, body]
             );
             savedMessage = messages[0];
             isNew = true;
